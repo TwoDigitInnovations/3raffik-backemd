@@ -19,7 +19,6 @@ exports.getContent = async (req, res) => {
 exports.updateContent = async (req, res) => {
   try {
     const { id, policy, terms } = req.body;
-
     // If ID is missing → CREATE new content
     if (!id || id === null || id === "" || id === undefined) {
       const newContent = await Content.create({ policy, terms });
