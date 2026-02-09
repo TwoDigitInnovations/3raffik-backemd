@@ -30,12 +30,34 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
     },
+    socialMedia: {
+      facebook: {
+        type: String,
+        default: '',
+      },
+      instagram: {
+        type: String,
+        default: '',
+      },
+      twitter: {
+        type: String,
+        default: '',
+      },
+      linkedin: {
+        type: String,
+        default: '',
+      },
+    },
     role: {
       type: String,
       enum: ['user', 'admin', 'company'],
       default: 'user',
     },
-
+    status: {
+      type: String,
+      enum: ['pending', 'verified', 'suspended'],
+      default: 'pending',
+    },
     createdAt: {
       type: Date,
       default: Date.now,

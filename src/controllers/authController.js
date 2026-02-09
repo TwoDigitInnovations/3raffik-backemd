@@ -72,6 +72,14 @@ module.exports = {
         return response.unAuthorize(res, { message: 'Invalid credentials' });
       }
 
+      // Check if user is suspended
+      if (user.status === 'suspended') {
+        return response.forbidden(res, { 
+          message: 'Your account has been suspended. Please contact support team.',
+          status: 'suspended'
+        });
+      }
+
       const token = jwt.sign({ id: user._id, email: user.email,role:user.role }, process.env.JWT_SECRET);
 
       const newData = {
@@ -81,7 +89,8 @@ module.exports = {
           email: user.email,
           name: user.name,
           role: user.role,
-          image:user.image
+          image: user.image,
+          socialMedia: user.socialMedia
         },
       };
        await Device.updateOne(
@@ -197,6 +206,16 @@ module.exports = {
       if (req.file && req.file.location) {
         payload.image = req.file.location;
       }
+      
+      
+      if (payload.socialMedia) {
+        try {
+          payload.socialMedia = JSON.parse(payload.socialMedia);
+        } catch (error) {
+          console.log('Error parsing socialMedia:', error);
+        }
+      }
+      
       console.log('payload', req.user.id);
       const user = await User.findByIdAndUpdate(req.user.id, payload, {
         new: true,
@@ -272,6 +291,33 @@ module.exports = {
         .limit(limit * 1)
         .skip((page - 1) * limit);
       return response.ok(res, u);
+    } catch (error) {
+      return response.error(res, error);
+    }
+  },
+
+  updatePassword: async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return response.badReq(res, { message: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 6) {
+        return response.badReq(res, { message: 'New password must be at least 6 characters long' });
+      }
+
+      const user = await User.findById(req.user.id);
+      
+      if (!user.authenticate(currentPassword)) {
+        return response.badReq(res, { message: 'Current password is incorrect' });
+      }
+
+      user.password = user.encryptPassword(newPassword);
+      await user.save();
+
+      return response.ok(res, { message: 'Password updated successfully' });
     } catch (error) {
       return response.error(res, error);
     }

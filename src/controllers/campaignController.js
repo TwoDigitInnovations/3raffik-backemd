@@ -68,4 +68,28 @@ module.exports = {
       return response.error(res, error);
     }
   },
+
+  getAllCampaigns: async (req, res) => {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+      let cond = {};
+      if (req?.query?.key) {
+        cond.name = { $regex: req.query.key, $options: 'i' };
+      }
+      if (req?.query?.selectedStatus) {
+        cond.status = req?.query.selectedStatus;
+      }
+      if (req?.query?.selectedVerification) {
+        cond.verified_status = req?.query.selectedVerification;
+      }
+      let campaign = await Campaign.find(cond)
+        .populate('created_by', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+      return response.ok(res, campaign);
+    } catch (error) {
+      return response.error(res, error);
+    }
+  },
 };

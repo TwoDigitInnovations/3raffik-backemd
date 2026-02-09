@@ -9,7 +9,28 @@ const notificationSchema = new mongoose.Schema(
         description: {
             type: String,
         },
-        for: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+        type: {
+            type: String,
+            enum: ['connection_request', 'general'],
+            default: 'general'
+        },
+        from: { 
+            type: mongoose.Types.ObjectId, 
+            ref: "User" 
+        },
+        for: [{ 
+            type: mongoose.Types.ObjectId, 
+            ref: "User" 
+        }],
+        status: {
+            type: String,
+            enum: ['pending', 'accepted', 'rejected'],
+            default: 'pending'
+        },
+        read: {
+            type: Boolean,
+            default: false
+        }
     }, {
     timestamps: true
 });
