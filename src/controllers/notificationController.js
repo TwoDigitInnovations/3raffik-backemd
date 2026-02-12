@@ -1,12 +1,56 @@
 const Notification = require('@models/notification');
+const CampaignConnection = require('@models/CampaignConnection');
+const Campaign = require('@models/campaign');
 const response = require("../responses");
 
 module.exports = {
     sendConnectionRequest: async (req, res) => {
         try {
-            const { affiliate_id, company_id } = req.body;
+            const { affiliate_id, company_id, campaign_id } = req.body;
             const from_id = req.user._id;
             const to_id = affiliate_id || company_id;
+            
+            if (campaign_id) {
+                const campaign = await Campaign.findById(campaign_id);
+                if (!campaign) {
+                    return response.notFound(res, { message: 'Campaign not found' });
+                }
+                
+                const existingConnection = await CampaignConnection.findOne({
+                    campaign_id,
+                    affiliate_id: from_id,
+                    company_id: campaign.created_by
+                });
+                
+                if (existingConnection) {
+                    if (existingConnection.status === 'pending') {
+                        return response.badReq(res, { message: 'Connection request already sent for this campaign' });
+                    } else if (existingConnection.status === 'accepted') {
+                        return response.badReq(res, { message: 'Already connected to this campaign' });
+                    }
+                }
+                
+                const campaignConnection = new CampaignConnection({
+                    campaign_id,
+                    affiliate_id: from_id,
+                    company_id: campaign.created_by,
+                    status: 'pending'
+                });
+                
+                await campaignConnection.save();
+                
+                const notification = new Notification({
+                    title: 'Campaign Connection Request',
+                    description: `Connection request for campaign: ${campaign.name}`,
+                    type: 'connection_request',
+                    from: from_id,
+                    for: [campaign.created_by],
+                    status: 'pending'
+                });
+                
+                await notification.save();
+                return response.ok(res, { message: 'Campaign connection request sent successfully' });
+            }
             
             const existingRequest = await Notification.findOne({
                 from: from_id,
@@ -72,13 +116,52 @@ module.exports = {
                 notification_id,
                 { status, read: true },
                 { new: true }
-            );
+            ).populate('from');
             
             if (!notification) {
                 return response.notFound(res, { message: 'Notification not found' });
             }
             
+            if (notification.description && notification.description.includes('campaign:')) {
+                const campaignConnection = await CampaignConnection.findOne({
+                    affiliate_id: notification.from._id,
+                    company_id: req.user._id,
+                    status: 'pending'
+                });
+                
+                if (campaignConnection) {
+                    campaignConnection.status = status;
+                    await campaignConnection.save();
+                }
+            }
+            
             return response.ok(res, { message: `Connection request ${status}` });
+        } catch (error) {
+            return response.error(res, error);
+        }
+    },
+
+    checkCampaignConnection: async (req, res) => {
+        try {
+            const { campaign_id } = req.params;
+            const affiliate_id = req.user._id;
+            
+            const connection = await CampaignConnection.findOne({
+                campaign_id,
+                affiliate_id
+            });
+            
+            if (!connection) {
+                return response.ok(res, { 
+                    connected: false,
+                    status: 'not_requested'
+                });
+            }
+            
+            return response.ok(res, { 
+                connected: connection.status === 'accepted',
+                status: connection.status
+            });
         } catch (error) {
             return response.error(res, error);
         }

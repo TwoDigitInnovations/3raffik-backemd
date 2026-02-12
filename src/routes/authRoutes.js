@@ -5,7 +5,7 @@ const auth = require('@middlewares/authMiddleware');
 const { upload } = require('@services/fileUpload');
 
 router.post('/login', login);
-router.post('/register', register);
+router.post('/register', upload.single('documentVerification'), register);
 router.post('/sendOTP', sendOTP);
 router.post('/verifyOTP', verifyOTP);
 router.post('/changePassword', changePassword);

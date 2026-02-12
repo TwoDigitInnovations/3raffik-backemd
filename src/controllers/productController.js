@@ -1,4 +1,5 @@
 const Product = require('@models/Product');
+const Campaign = require('@models/campaign');
 const response = require('../responses');
 
 module.exports = {
@@ -20,14 +21,32 @@ module.exports = {
   getProductByCompany: async (req, res) => {
     try {
       const { page = 1, limit = 20 } = req.query;
-      let cond = { campaign: req.query.campaign_id };
+      let cond = { 
+        campaign: req.query.campaign_id
+      };
+
+      // If user is affiliate (not company owner), exclude suspended products and rejected campaigns
+      if (req.user.role === 'user') {
+        cond.status = { $ne: 'Suspended' };
+      }
+
       if (req?.query?.key) {
         cond.name = { $regex: req.query.key, $options: 'i' };
       }
+      
       let product = await Product.find(cond)
+        .populate('campaign', 'name verified_status created_by')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
+      
+      // If user is affiliate, filter out products with rejected campaigns
+      if (req.user.role === 'user') {
+        product = product.filter(p => 
+          p.campaign && p.campaign.verified_status !== 'Rejected'
+        );
+      }
+      
       return response.ok(res, product);
     } catch (error) {
       return response.error(res, error);
@@ -38,7 +57,10 @@ module.exports = {
     try {
       const { productId, campaignId, affiliateId, companyId } = req.query;
       
-      let product = await Product.findById(productId).populate({
+      let product = await Product.findOne({ 
+        _id: productId,
+        status: { $ne: 'Suspended' } // Exclude suspended products
+      }).populate({
         path: 'campaign',
         populate: {
           path: 'created_by',
@@ -47,7 +69,12 @@ module.exports = {
       });
       
       if (!product) {
-        return response.notFound(res, 'Product not found');
+        return response.notFound(res, 'Product not found or suspended');
+      }
+
+      // Check if campaign is rejected
+      if (product.campaign && product.campaign.verified_status === 'Rejected') {
+        return response.notFound(res, 'Product campaign is rejected');
       }
 
      
@@ -102,17 +129,24 @@ module.exports = {
   getAllProducts: async (req, res) => {
     try {
       const { page = 1, limit = 20 } = req.query;
-      let cond = {};
+      let cond = {
+        status: { $ne: 'Suspended' } // Exclude suspended products from frontend
+      };
       
       if (req?.query?.search) {
         cond.name = { $regex: req.query.search, $options: 'i' };
       }
       
       let products = await Product.find(cond)
-        .populate('campaign', 'name')
+        .populate('campaign', 'name verified_status')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
+      
+      // Filter out products with rejected campaigns
+      products = products.filter(product => 
+        product.campaign && product.campaign.verified_status !== 'Rejected'
+      );
       
       const total = await Product.countDocuments(cond);
       

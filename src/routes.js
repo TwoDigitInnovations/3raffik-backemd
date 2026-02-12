@@ -8,6 +8,8 @@ const adminRoute = require('@routes/adminRoutes');
 const inquiryRoute = require('@routes/inquiryRoutes');
 const policyRoute = require('@routes/policyRoutes');
 const dashboardRoute = require('@routes/dashboardRoutes');
+const clickRoute = require('@routes/clickRoutes');
+const walletRoute = require('@routes/walletRoutes');
 
 module.exports = (app) => {
   app.use('/auth', authRoutes);
@@ -20,4 +22,6 @@ module.exports = (app) => {
   app.use('/inquiry', inquiryRoute);
   app.use('/policy', policyRoute);
   app.use('/dashboard', dashboardRoute);
+  app.use('/click', clickRoute);
+  app.use('/wallet', walletRoute);
 };

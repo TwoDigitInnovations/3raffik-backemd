@@ -1,7 +1,9 @@
 const Order = require('@models/Order');
 const Product = require('@models/Product');
+const Campaign = require('@models/campaign');
 const Commission = require('@models/Commission');
 const AdminCommission = require('@models/AdminCommission');
+const Click = require('@models/Click');
 const User = require('@models/User');
 const mongoose = require('mongoose');
 const response = require('../responses');
@@ -18,6 +20,29 @@ module.exports = {
         totalAmount,
         trackingInfo
       } = req.body;
+
+      // Validate that no suspended products are in the order
+      const productIds = items.map(item => item.product);
+      const products = await Product.find({ _id: { $in: productIds } }).populate('campaign', 'verified_status');
+      
+      const suspendedProducts = products.filter(p => p.status === 'Suspended');
+      if (suspendedProducts.length > 0) {
+        return response.badReq(res, { 
+          message: 'Order contains suspended products. Please remove them and try again.',
+          suspendedProducts: suspendedProducts.map(p => ({ id: p._id, name: p.name }))
+        });
+      }
+
+      // Validate that no products from rejected campaigns are in the order
+      const rejectedCampaignProducts = products.filter(p => 
+        p.campaign && p.campaign.verified_status === 'Rejected'
+      );
+      if (rejectedCampaignProducts.length > 0) {
+        return response.badReq(res, { 
+          message: 'Order contains products from rejected campaigns. Please remove them and try again.',
+          rejectedProducts: rejectedCampaignProducts.map(p => ({ id: p._id, name: p.name }))
+        });
+      }
 
       // Get admin commission settings
       let adminCommissionAmount = 0;
@@ -56,6 +81,22 @@ module.exports = {
 
       await order.save();
 
+      // Mark clicks as converted for this affiliate and products
+      if (validTrackingInfo && validTrackingInfo.affiliateId) {
+        await Click.updateMany(
+          {
+            affiliate: validTrackingInfo.affiliateId,
+            product: { $in: productIds },
+            converted: false
+          },
+          {
+            $set: {
+              converted: true,
+              orderId: order._id
+            }
+          }
+        );
+      }
       
       if (validTrackingInfo) {
         for (const item of items) {

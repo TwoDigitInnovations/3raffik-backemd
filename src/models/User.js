@@ -30,6 +30,14 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
     },
+    bio: {
+      type: String,
+      default: '',
+    },
+    documentVerification: {
+      type: String,
+      default: '',
+    },
     socialMedia: {
       facebook: {
         type: String,
@@ -68,6 +76,10 @@ const userSchema = new mongoose.Schema(
 
 userSchema.methods.isPasswordMatch = async function (password) {
   return password === this.password;
+};
+
+userSchema.methods.authenticate = function (password) {
+  return bcrypt.compareSync(password, this.password);
 };
 
 userSchema.methods.encryptPassword = (password) => {

@@ -11,6 +11,9 @@ const Device = require('@models/Device');
 module.exports = {
   register: async (req, res) => {
     try {
+      console.log('Register request body:', req.body);
+      console.log('Register request file:', req.file);
+      
       const { name, email, password, phone, role } = req.body;
 
       if (password.length < 6) {
@@ -40,7 +43,13 @@ module.exports = {
         newUser.phone = phone;
       }
 
+      if (req.file) {
+        console.log('Document file received:', req.file.location);
+        newUser.documentVerification = req.file.location;
+      }
+
       await newUser.save();
+      console.log('User saved with document:', newUser.documentVerification);
 
       const userResponse = await User.findById(newUser._id).select('-password');
       return response.ok(res, {
@@ -49,7 +58,7 @@ module.exports = {
       });
 
     } catch (error) {
-      console.error(error);
+      console.error('Register error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   },
@@ -72,7 +81,7 @@ module.exports = {
         return response.unAuthorize(res, { message: 'Invalid credentials' });
       }
 
-      // Check if user is suspended
+     
       if (user.status === 'suspended') {
         return response.forbidden(res, { 
           message: 'Your account has been suspended. Please contact support team.',
@@ -207,7 +216,6 @@ module.exports = {
         payload.image = req.file.location;
       }
       
-      
       if (payload.socialMedia) {
         try {
           payload.socialMedia = JSON.parse(payload.socialMedia);
@@ -216,11 +224,11 @@ module.exports = {
         }
       }
       
-      console.log('payload', req.user.id);
       const user = await User.findByIdAndUpdate(req.user.id, payload, {
         new: true,
         upsert: true,
       });
+      
       return response.ok(res, { user, message: 'Profile Updated Succesfully' });
     } catch (error) {
       return response.error(res, error);

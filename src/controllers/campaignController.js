@@ -42,6 +42,17 @@ module.exports = {
   getCampaignById: async (req, res) => {
     try {
       let campaign = await Campaign.findById(req.params.id);
+      
+      if (!campaign) {
+        return response.notFound(res, 'Campaign not found');
+      }
+
+      // If user is not the campaign owner and campaign is rejected, don't show it
+      if (campaign.verified_status === 'Rejected' && 
+          campaign.created_by.toString() !== req.user._id.toString()) {
+        return response.notFound(res, 'Campaign not found or rejected');
+      }
+      
       return response.ok(res, campaign);
     } catch (error) {
       return response.error(res, error);
@@ -72,7 +83,9 @@ module.exports = {
   getAllCampaigns: async (req, res) => {
     try {
       const { page = 1, limit = 20 } = req.query;
-      let cond = {};
+      let cond = {
+        verified_status: { $ne: 'Rejected' } // Exclude rejected campaigns from frontend
+      };
       if (req?.query?.key) {
         cond.name = { $regex: req.query.key, $options: 'i' };
       }
