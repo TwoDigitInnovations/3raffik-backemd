@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { login, register, sendOTP, verifyOTP, changePassword, myProfile, getAllUser, getAllAffiliates, updateprofile, updatePassword } = require('@controllers/authController');
+const { login, register, sendOTP, verifyOTP, changePassword, myProfile, getAllUser, getAllAffiliates, updateprofile, updatePassword, updateOneSignalId } = require('@controllers/authController');
 const auth = require('@middlewares/authMiddleware');
 const { upload } = require('@services/fileUpload');
 
@@ -12,6 +12,7 @@ router.post('/changePassword', changePassword);
 router.get('/profile', auth('admin', 'user', 'company'), myProfile);
 router.post('/updateprofile', auth('admin', 'user', 'company'),upload.single('image'), updateprofile);
 router.put('/update-password', auth('admin', 'user', 'company'), updatePassword);
+router.post('/update-onesignal-id', auth('admin', 'user', 'company'), updateOneSignalId);
 router.get('/getAllAffiliates', auth('admin', 'user', 'company'), getAllAffiliates);
 router.get('/getAllUser', auth('admin'), getAllUser);
 

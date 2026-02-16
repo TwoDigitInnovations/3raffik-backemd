@@ -1,4 +1,5 @@
 const Campaign = require('@models/campaign');
+const CampaignConnection = require('@models/CampaignConnection');
 const response = require('../responses');
 
 module.exports = {
@@ -84,7 +85,7 @@ module.exports = {
     try {
       const { page = 1, limit = 20 } = req.query;
       let cond = {
-        verified_status: { $ne: 'Rejected' } // Exclude rejected campaigns from frontend
+        verified_status: { $ne: 'Rejected' }
       };
       if (req?.query?.key) {
         cond.name = { $regex: req.query.key, $options: 'i' };
@@ -101,6 +102,39 @@ module.exports = {
         .limit(limit * 1)
         .skip((page - 1) * limit);
       return response.ok(res, campaign);
+    } catch (error) {
+      return response.error(res, error);
+    }
+  },
+
+  getMyCampaigns: async (req, res) => {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+      const affiliate_id = req.user._id;
+      
+      const acceptedConnections = await CampaignConnection.find({
+        affiliate_id,
+        status: 'accepted'
+      }).select('campaign_id');
+      
+      const campaignIds = acceptedConnections.map(conn => conn.campaign_id);
+      
+      let cond = {
+        _id: { $in: campaignIds },
+        verified_status: { $ne: 'Rejected' }
+      };
+      
+      if (req?.query?.key) {
+        cond.name = { $regex: req.query.key, $options: 'i' };
+      }
+      
+      let campaigns = await Campaign.find(cond)
+        .populate('created_by', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+      
+      return response.ok(res, campaigns);
     } catch (error) {
       return response.error(res, error);
     }

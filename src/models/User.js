@@ -66,6 +66,9 @@ const userSchema = new mongoose.Schema(
       enum: ['pending', 'verified', 'suspended'],
       default: 'pending',
     },
+    oneSignalIds: [{
+      type: String,
+    }],
     createdAt: {
       type: Date,
       default: Date.now,

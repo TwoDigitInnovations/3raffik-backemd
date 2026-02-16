@@ -331,4 +331,25 @@ module.exports = {
     }
   },
 
+  updateOneSignalId: async (req, res) => {
+    try {
+      const { oneSignalId } = req.body;
+      
+      if (!oneSignalId) {
+        return response.badReq(res, { message: 'OneSignal ID is required' });
+      }
+
+      const user = await User.findById(req.user.id);
+      
+      if (!user.oneSignalIds.includes(oneSignalId)) {
+        user.oneSignalIds.push(oneSignalId);
+        await user.save();
+      }
+
+      return response.ok(res, { message: 'OneSignal ID updated successfully' });
+    } catch (error) {
+      return response.error(res, error);
+    }
+  },
+
 };
