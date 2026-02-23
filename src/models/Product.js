@@ -24,8 +24,12 @@ const productSchema = new mongoose.Schema(
         unit: {
             type: String,
         },
-        qty: {
+        size: {
             type: String,
+        },
+        quantity: {
+            type: Number,
+            default: 0,
         },
         offer_price: {
             type: String,

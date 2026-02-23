@@ -87,24 +87,14 @@ module.exports = {
                 
                 await notification.save();
 
-                console.log('=== PUSH NOTIFICATION DEBUG ===');
-                console.log('Company OneSignal IDs:', campaign.created_by.oneSignalIds);
-                console.log('Affiliate Name:', req.user.name);
-                console.log('Campaign Name:', campaign.name);
-                
                 if (campaign.created_by.oneSignalIds && campaign.created_by.oneSignalIds.length > 0) {
-                    console.log('Sending push notification to company...');
-                    const result = await sendPushNotification(
+                    await sendPushNotification(
                         campaign.created_by.oneSignalIds,
                         'New Connection Request',
                         `${req.user.name} sent a connection request for ${campaign.name}`,
                         { type: 'connection_request', notification_id: notification._id.toString() }
                     );
-                    console.log('Push notification result:', result);
-                } else {
-                    console.log('No OneSignal IDs found for company');
                 }
-                console.log('=== END DEBUG ===');
                 
                 return response.ok(res, { message: 'Campaign connection request sent successfully' });
             }
@@ -180,10 +170,6 @@ module.exports = {
         try {
             const { notification_id, status } = req.body;
             
-            console.log('=== UPDATE NOTIFICATION STATUS ===');
-            console.log('Notification ID:', notification_id);
-            console.log('New Status:', status);
-            
             const notification = await Notification.findByIdAndUpdate(
                 notification_id,
                 { status, read: true },
@@ -194,21 +180,15 @@ module.exports = {
                 return response.notFound(res, { message: 'Notification not found' });
             }
             
-            console.log('Notification found:', notification.description);
-            
             if (notification.description && notification.description.includes('campaign:')) {
                 const campaignConnection = await CampaignConnection.findOne({
                     affiliate_id: notification.from._id,
                     company_id: req.user._id
                 }).populate('campaign_id');
                 
-                console.log('Campaign Connection found:', campaignConnection);
-                
                 if (campaignConnection) {
-                    console.log('Old status:', campaignConnection.status);
                     campaignConnection.status = status;
                     await campaignConnection.save();
-                    console.log('New status saved:', status);
 
                     const affiliate = await User.findById(notification.from._id);
                     if (affiliate && affiliate.oneSignalIds && affiliate.oneSignalIds.length > 0) {
@@ -224,10 +204,8 @@ module.exports = {
                 }
             }
             
-            console.log('=== END UPDATE ===');
             return response.ok(res, { message: `Connection request ${status}` });
         } catch (error) {
-            console.error('Update notification error:', error);
             return response.error(res, error);
         }
     },

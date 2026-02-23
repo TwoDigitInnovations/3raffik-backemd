@@ -18,14 +18,7 @@ const client = new OneSignal.DefaultApi(configuration);
 
 const sendPushNotification = async (userIds, title, message, data = {}) => {
   try {
-    console.log('=== ONESIGNAL SERVICE ===');
-    console.log('User IDs:', userIds);
-    console.log('Title:', title);
-    console.log('Message:', message);
-    console.log('App ID:', process.env.ONESIGNAL_APP_ID);
-    
     if (!userIds || userIds.length === 0) {
-      console.log('No user IDs provided for push notification');
       return null;
     }
 
@@ -36,16 +29,10 @@ const sendPushNotification = async (userIds, title, message, data = {}) => {
     notification.headings = { en: title };
     notification.data = data;
 
-    console.log('Sending notification to OneSignal...');
     const result = await client.createNotification(notification);
-    console.log('Push notification sent successfully:', result);
-    console.log('=== END ONESIGNAL SERVICE ===');
     return result;
   } catch (error) {
-    console.error('=== ONESIGNAL ERROR ===');
-    console.error('Error sending push notification:', error.message);
-    console.error('Error details:', error);
-    console.error('=== END ERROR ===');
+    console.error('Push notification error:', error.message);
     return null;
   }
 };

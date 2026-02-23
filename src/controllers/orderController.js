@@ -44,6 +44,32 @@ module.exports = {
         });
       }
 
+      // Check stock availability and decrease quantity
+      for (const item of items) {
+        const product = products.find(p => p._id.toString() === item.product.toString());
+        if (product) {
+          const currentQuantity = product.quantity || 0;
+          const orderedQuantity = item.quantity || 1;
+          
+          console.log(`Product: ${product.name}, Current Stock: ${currentQuantity}, Ordered: ${orderedQuantity}`);
+          
+          if (currentQuantity < orderedQuantity) {
+            return response.badReq(res, { 
+              message: `Insufficient stock for product: ${product.name}. Available: ${currentQuantity}, Requested: ${orderedQuantity}`,
+              product: { id: product._id, name: product.name, available: currentQuantity }
+            });
+          }
+          
+          const updatedProduct = await Product.findByIdAndUpdate(
+            product._id,
+            { $inc: { quantity: -orderedQuantity } },
+            { new: true }
+          );
+          
+          console.log(`Updated Product: ${updatedProduct.name}, New Stock: ${updatedProduct.quantity}`);
+        }
+      }
+
       // Get admin commission settings
       let adminCommissionAmount = 0;
       const adminCommissionSettings = await AdminCommission.findOne({ is_active: true });
