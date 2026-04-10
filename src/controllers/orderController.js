@@ -3,6 +3,7 @@ const Product = require('@models/Product');
 const Campaign = require('@models/campaign');
 const Commission = require('@models/Commission');
 const AdminCommission = require('@models/AdminCommission');
+const ReferralCommission = require('@models/ReferralCommission');
 const Click = require('@models/Click');
 const User = require('@models/User');
 const mongoose = require('mongoose');
@@ -21,7 +22,7 @@ module.exports = {
         trackingInfo
       } = req.body;
 
-      // Validate that no suspended products are in the order
+    
       const productIds = items.map(item => item.product);
       const products = await Product.find({ _id: { $in: productIds } }).populate('campaign', 'verified_status');
       
@@ -70,14 +71,15 @@ module.exports = {
         }
       }
 
-      // Get admin commission settings
       let adminCommissionAmount = 0;
+      let adminCommissionPercentage = 10;
       const adminCommissionSettings = await AdminCommission.findOne({ is_active: true });
       
       if (adminCommissionSettings && adminCommissionSettings.commission_percentage) {
-        const commissionPercentage = adminCommissionSettings.commission_percentage;
-        adminCommissionAmount = (totalAmount * commissionPercentage) / 100;
+        adminCommissionPercentage = adminCommissionSettings.commission_percentage;
       }
+
+      adminCommissionAmount = (totalAmount * adminCommissionPercentage) / 100;
 
     
       let validTrackingInfo = null;
@@ -147,6 +149,25 @@ module.exports = {
 
             await commission.save();
           }
+        }
+
+        const company = await User.findById(validTrackingInfo.companyId);
+        if (company && company.referredBy) {
+          const referralCommissionRate = 2;
+          const referralCommissionAmount = (adminCommissionAmount * referralCommissionRate) / 100;
+
+          const referralCommission = new ReferralCommission({
+            order: order._id,
+            referringAffiliate: company.referredBy,
+            company: validTrackingInfo.companyId,
+            orderAmount: totalAmount,
+            adminCommission: adminCommissionAmount,
+            commissionRate: referralCommissionRate,
+            commissionAmount: referralCommissionAmount,
+            status: 'processed'
+          });
+
+          await referralCommission.save();
         }
 
         order.commissionProcessed = true;
@@ -234,14 +255,28 @@ module.exports = {
         .limit(limit * 1)
         .skip((page - 1) * limit);
 
+      const referralCommissions = await ReferralCommission.find({ referringAffiliate: affiliateId })
+        .populate('order', 'orderId createdAt status')
+        .populate('company', 'name')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
       const totalCommission = await Commission.aggregate([
         { $match: { affiliate: new mongoose.Types.ObjectId(affiliateId) } },
         { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
       ]);
 
+      const totalReferralCommission = await ReferralCommission.aggregate([
+        { $match: { referringAffiliate: new mongoose.Types.ObjectId(affiliateId) } },
+        { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
+      ]);
+
       return response.ok(res, {
         commissions,
+        referralCommissions,
         totalCommission: totalCommission[0]?.total || 0,
+        totalReferralCommission: totalReferralCommission[0]?.total || 0,
         pagination: {
           current_page: parseInt(page),
           total_pages: Math.ceil(commissions.length / limit),

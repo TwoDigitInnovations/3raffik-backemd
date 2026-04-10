@@ -3,7 +3,9 @@ const Campaign = require('@models/campaign');
 const Product = require('@models/Product');
 const Order = require('@models/Order');
 const AdminCommission = require('@models/AdminCommission');
+const ReferralCommission = require('@models/ReferralCommission');
 const response = require('../responses');
+const mongoose = require('mongoose');
 
 module.exports = {
   
@@ -438,9 +440,19 @@ module.exports = {
           }
         }
       ]);
+
+      const referralCommissionResult = await ReferralCommission.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalReferralCommission: { $sum: '$commissionAmount' }
+          }
+        }
+      ]);
       
       const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].totalAmount : 0;
       const adminCommission = adminCommissionResult.length > 0 ? adminCommissionResult[0].totalCommission : 0;
+      const referralCommission = referralCommissionResult.length > 0 ? referralCommissionResult[0].totalReferralCommission : 0;
       
       const recentTransactions = await Order.find()
         .populate('trackingInfo.affiliateId', 'name email')
@@ -453,6 +465,8 @@ module.exports = {
         totalOrders,
         totalRevenue,
         adminCommission,
+        referralCommission,
+        netAdminCommission: adminCommission - referralCommission,
         recentTransactions
       });
     } catch (error) {
@@ -497,6 +511,51 @@ module.exports = {
       await newCommissionSetting.save();
       
       return response.ok(res, { message: 'Commission settings updated successfully' });
+    } catch (error) {
+      return response.error(res, error);
+    }
+  },
+
+  getAllReferralCommissions: async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      
+      const referrals = await ReferralCommission.find()
+        .populate('referringAffiliate', 'name email')
+        .populate('company', 'name email')
+        .populate('order', 'orderId createdAt status')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await ReferralCommission.countDocuments();
+
+      const totalCommission = await ReferralCommission.aggregate([
+        { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
+      ]);
+
+      const totalReferrals = await User.countDocuments({ 
+        referredBy: { $exists: true, $ne: null },
+        role: 'company'
+      });
+
+      const activeCompanies = await User.countDocuments({ 
+        referredBy: { $exists: true, $ne: null },
+        role: 'company',
+        status: 'verified'
+      });
+
+      return response.ok(res, {
+        referrals,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        total,
+        stats: {
+          totalReferrals,
+          totalCommission: totalCommission[0]?.total || 0,
+          activeCompanies
+        }
+      });
     } catch (error) {
       return response.error(res, error);
     }

@@ -10,6 +10,7 @@ const policyRoute = require('@routes/policyRoutes');
 const dashboardRoute = require('@routes/dashboardRoutes');
 const clickRoute = require('@routes/clickRoutes');
 const walletRoute = require('@routes/walletRoutes');
+const referralRoute = require('@routes/referralRoutes');
 
 module.exports = (app) => {
   app.use('/auth', authRoutes);
@@ -24,4 +25,5 @@ module.exports = (app) => {
   app.use('/dashboard', dashboardRoute);
   app.use('/click', clickRoute);
   app.use('/wallet', walletRoute);
+  app.use('/referral', referralRoute);
 };

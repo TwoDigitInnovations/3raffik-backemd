@@ -37,4 +37,7 @@ const orderController = require('@controllers/orderController');
 router.get('/orders', authMiddleware('admin'), orderController.getAllOrders);
 router.get('/orders/:id', authMiddleware('admin'), orderController.getOrderById);
 
+// Referral routes
+router.get('/referrals', authMiddleware('admin'), adminController.getAllReferralCommissions);
+
 module.exports = router;

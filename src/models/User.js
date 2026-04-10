@@ -66,6 +66,16 @@ const userSchema = new mongoose.Schema(
       enum: ['pending', 'verified', 'suspended'],
       default: 'pending',
     },
+    referredBy: {
+      type: mongoose.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     oneSignalIds: [{
       type: String,
     }],

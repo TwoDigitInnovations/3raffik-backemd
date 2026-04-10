@@ -1,4 +1,5 @@
 const Commission = require('@models/Commission');
+const ReferralCommission = require('@models/ReferralCommission');
 const Withdrawal = require('@models/Withdrawal');
 const Order = require('@models/Order');
 const response = require('../responses');
@@ -13,7 +14,14 @@ module.exports = {
         .populate('campaign', 'name')
         .sort({ createdAt: -1 });
 
-      const totalCommission = commissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+      const referralCommissions = await ReferralCommission.find({ referringAffiliate: affiliateId })
+        .populate('order', 'orderId')
+        .populate('company', 'name')
+        .sort({ createdAt: -1 });
+
+      const productCommissionTotal = commissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+      const referralCommissionTotal = referralCommissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+      const totalCommission = productCommissionTotal + referralCommissionTotal;
 
       const withdrawals = await Withdrawal.find({ user: affiliateId });
       const totalWithdrawn = withdrawals
@@ -22,8 +30,23 @@ module.exports = {
 
       const availableBalance = totalCommission - totalWithdrawn;
 
+      const allTransactions = [
+        ...commissions.map(c => ({
+          ...c.toObject(),
+          type: 'product',
+          date: c.createdAt
+        })),
+        ...referralCommissions.map(r => ({
+          ...r.toObject(),
+          type: 'referral',
+          date: r.createdAt
+        }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
       return response.ok(res, {
-        commissions,
+        transactions: allTransactions,
+        productCommissions: parseFloat(productCommissionTotal.toFixed(2)),
+        referralCommissions: parseFloat(referralCommissionTotal.toFixed(2)),
         totalCommission: parseFloat(totalCommission.toFixed(2)),
         totalWithdrawn: parseFloat(totalWithdrawn.toFixed(2)),
         availableBalance: parseFloat(availableBalance.toFixed(2))
@@ -76,7 +99,10 @@ module.exports = {
       let availableBalance = 0;
       if (req.user.role === 'user') {
         const commissions = await Commission.find({ affiliate: userId });
-        const totalCommission = commissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+        const referralCommissions = await ReferralCommission.find({ referringAffiliate: userId });
+        const productCommissionTotal = commissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+        const referralCommissionTotal = referralCommissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
+        const totalCommission = productCommissionTotal + referralCommissionTotal;
         const withdrawals = await Withdrawal.find({ user: userId, status: 'completed' });
         const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
         availableBalance = totalCommission - totalWithdrawn;

@@ -11,10 +11,7 @@ const Device = require('@models/Device');
 module.exports = {
   register: async (req, res) => {
     try {
-      console.log('Register request body:', req.body);
-      console.log('Register request file:', req.file);
-      
-      const { name, email, password, phone, role } = req.body;
+      const { name, email, password, phone, role, referralCode } = req.body;
 
       if (password.length < 6) {
         return res
@@ -48,8 +45,30 @@ module.exports = {
         newUser.documentVerification = req.file.location;
       }
 
+      if (referralCode && role === 'company') {
+        const referringAffiliate = await User.findOne({ referralCode: referralCode });
+        if (referringAffiliate && referringAffiliate.role === 'user') {
+          newUser.referredBy = referringAffiliate._id;
+        }
+      }
+
+      const generateReferralCode = () => {
+        return Math.random().toString(36).substring(2, 10).toUpperCase();
+      };
+
+      if (role === 'user') {
+        let isUnique = false;
+        let code;
+        while (!isUnique) {
+          code = generateReferralCode();
+          const existing = await User.findOne({ referralCode: code });
+          if (!existing) isUnique = true;
+        }
+        newUser.referralCode = code;
+      }
+
       await newUser.save();
-      console.log('User saved with document:', newUser.documentVerification);
+     
 
       const userResponse = await User.findById(newUser._id).select('-password');
       return response.ok(res, {

@@ -14,7 +14,8 @@
     "format": "npm run prettier && npm run lint:fix",
     "build": "npm run prettier && npm run lint:fix",
     "start:dev": "nodemon src/server.js",
-    "migrate:clicks": "node src/scripts/migrateOrdersToClicks.js"
+    "migrate:clicks": "node src/scripts/migrateOrdersToClicks.js",
+    "migrate:referral-codes": "node src/scripts/generateReferralCodes.js"
   },
   "author": "",
   "license": "ISC",
