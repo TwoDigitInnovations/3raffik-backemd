@@ -74,7 +74,7 @@ module.exports = {
 
   getAllCompanies: async (req, res) => {
     try {
-      const { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '', startDate = '', endDate = '' } = req.query;
       
       let query = { role: 'company' };
       
@@ -84,6 +84,24 @@ module.exports = {
           { email: { $regex: search, $options: 'i' } },
         ];
       }
+
+      // Add date filtering
+      if (startDate || endDate) {
+        query.createdAt = {};
+        
+        if (startDate) {
+          query.createdAt.$gte = new Date(startDate);
+        }
+        
+        if (endDate) {
+          // Add one day to endDate to include the entire end date
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
+      }
+
+      console.log('Companies query:', JSON.stringify(query, null, 2));
 
       const companies = await User.find(query, '-password')
         .sort({ createdAt: -1 })
@@ -99,6 +117,7 @@ module.exports = {
         total,
       });
     } catch (error) {
+      console.error('getAllCompanies error:', error);
       return response.error(res, error);
     }
   },
@@ -170,13 +189,31 @@ module.exports = {
 
   getAllCampaigns: async (req, res) => {
     try {
-      const { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '', startDate = '', endDate = '' } = req.query;
       
       let query = {};
       
       if (search) {
         query.name = { $regex: search, $options: 'i' };
       }
+
+      // Add date filtering
+      if (startDate || endDate) {
+        query.createdAt = {};
+        
+        if (startDate) {
+          query.createdAt.$gte = new Date(startDate);
+        }
+        
+        if (endDate) {
+          // Add one day to endDate to include the entire end date
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
+      }
+
+      console.log('Campaigns query:', JSON.stringify(query, null, 2));
 
       const campaigns = await Campaign.find(query)
         .populate('created_by', 'name email')
@@ -193,6 +230,7 @@ module.exports = {
         total,
       });
     } catch (error) {
+      console.error('getAllCampaigns error:', error);
       return response.error(res, error);
     }
   },
@@ -248,7 +286,7 @@ module.exports = {
   // Get all affiliates (users with role 'user')
   getAllAffiliates: async (req, res) => {
     try {
-      const { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '', startDate = '', endDate = '' } = req.query;
       
       let query = { role: 'user' };
       
@@ -259,6 +297,24 @@ module.exports = {
           { phone: { $regex: search, $options: 'i' } },
         ];
       }
+
+      // Add date filtering
+      if (startDate || endDate) {
+        query.createdAt = {};
+        
+        if (startDate) {
+          query.createdAt.$gte = new Date(startDate);
+        }
+        
+        if (endDate) {
+          // Add one day to endDate to include the entire end date
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
+      }
+
+      console.log('Affiliates query:', JSON.stringify(query, null, 2));
 
       const affiliates = await User.find(query, '-password')
         .sort({ createdAt: -1 })
@@ -274,6 +330,7 @@ module.exports = {
         total,
       });
     } catch (error) {
+      console.error('getAllAffiliates error:', error);
       return response.error(res, error);
     }
   },
@@ -326,13 +383,25 @@ module.exports = {
   // Get all products
   getAllProducts: async (req, res) => {
     try {
-      const { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '', startDate = '', endDate = '' } = req.query;
       
       let query = {};
       
       if (search) {
         query.name = { $regex: search, $options: 'i' };
       }
+
+      if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (endDate) {
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
+      }
+
+      console.log('Products query:', JSON.stringify(query, null, 2));
 
       const products = await Product.find(query)
         .populate({

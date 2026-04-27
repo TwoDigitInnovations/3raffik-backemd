@@ -40,11 +40,21 @@ module.exports = {
 
   getAllInquiries: async (req, res) => {
     try {
-      const { page = 1, limit = 20, status } = req.query;
+      const { page = 1, limit = 20, status, startDate = '', endDate = '' } = req.query;
       
       let query = {};
       if (status) {
         query.status = status;
+      }
+
+      if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (endDate) {
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
       }
 
       const inquiries = await Inquiry.find(query)

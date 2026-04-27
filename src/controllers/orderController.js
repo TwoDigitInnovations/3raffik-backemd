@@ -366,12 +366,24 @@ module.exports = {
 
   getAllOrders: async (req, res) => {
     try {
-      const { page = 1, limit = 10, status } = req.query;
+      const { page = 1, limit = 10, status, startDate = '', endDate = '' } = req.query;
       
       let query = {};
       if (status) {
         query.status = status;
       }
+
+      if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (endDate) {
+          const endDateTime = new Date(endDate);
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          query.createdAt.$lt = endDateTime;
+        }
+      }
+
+      console.log('Orders query:', JSON.stringify(query, null, 2));
 
       const orders = await Order.find(query)
         .populate('items.product', 'name price')

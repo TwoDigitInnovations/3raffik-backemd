@@ -25,9 +25,9 @@ module.exports = {
         campaign: req.query.campaign_id
       };
 
-      // If user is affiliate (not company owner), exclude suspended products and rejected campaigns
+      // If user is affiliate (not company owner), only show verified products
       if (req.user.role === 'user') {
-        cond.status = { $ne: 'Suspended' };
+        cond.status = 'Verified'; // Only show verified products to affiliates
       }
 
       if (req?.query?.key) {
@@ -166,7 +166,11 @@ module.exports = {
 
   getProductCountByCampaign: async (req, res) => {
     try {
-      const count = await Product.countDocuments({ campaign: req.params.campaign_id });
+      // Only count Verified products (exclude Pending and Suspended products)
+      const count = await Product.countDocuments({ 
+        campaign: req.params.campaign_id,
+        status: 'Verified' // Only count verified products
+      });
       return response.ok(res, { count });
     } catch (error) {
       return response.error(res, error);
