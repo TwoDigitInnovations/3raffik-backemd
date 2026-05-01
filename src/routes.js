@@ -1,4 +1,5 @@
 const authRoutes = require('@routes/authRoutes');
+const adminAuthRoutes = require('@routes/adminAuthRoutes');
 const notificationRoutes = require('@routes/notificationRoutes');
 const contentRoute = require('@routes/contentRoute');
 const campaignRoute = require('@routes/campaignRoutes');
@@ -14,6 +15,7 @@ const referralRoute = require('@routes/referralRoutes');
 
 module.exports = (app) => {
   app.use('/auth', authRoutes);
+  app.use('/admin/auth', adminAuthRoutes);
   app.use('/notification', notificationRoutes);
   app.use('/content', contentRoute);
   app.use('/campaign', campaignRoute);

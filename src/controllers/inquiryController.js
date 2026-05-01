@@ -49,11 +49,15 @@ module.exports = {
 
       if (startDate || endDate) {
         query.createdAt = {};
-        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setUTCHours(0, 0, 0, 0);
+          query.createdAt.$gte = start;
+        }
         if (endDate) {
-          const endDateTime = new Date(endDate);
-          endDateTime.setDate(endDateTime.getDate() + 1);
-          query.createdAt.$lt = endDateTime;
+          const end = new Date(endDate);
+          end.setUTCHours(23, 59, 59, 999);
+          query.createdAt.$lte = end;
         }
       }
 

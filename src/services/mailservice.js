@@ -806,4 +806,46 @@ module.exports = {
             throw new Error("Could not send Notifications");
         }
     },
+
+    sendAdminOTPmail: async ({ email, name, otp }) => {
+        try {
+            const html = `
+      <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 12px; padding: 32px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+          
+          <div style="text-align: center; margin-bottom: 28px;">
+            <h2 style="color: #1a1a1a; margin: 0; font-size: 22px;">3raffik Admin</h2>
+            <p style="color: #666; font-size: 14px; margin-top: 6px;">Two-Factor Authentication</p>
+          </div>
+
+          <p style="color: #333; font-size: 15px;">Hello <strong>${name}</strong>,</p>
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">
+            A login attempt was made to your admin account. Use the OTP below to complete your login.
+            This code is valid for <strong>5 minutes</strong>.
+          </p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #FFCC00, #FFB800); padding: 18px 40px; border-radius: 10px;">
+              <span style="font-size: 36px; font-weight: bold; color: #1a1a1a; letter-spacing: 10px;">${otp}</span>
+            </div>
+          </div>
+
+          <div style="background: #fff8e1; border-left: 4px solid #FFCC00; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;">
+            <p style="margin: 0; color: #555; font-size: 13px;">
+              ⚠️ <strong>Do not share this OTP</strong> with anyone. If you did not attempt to login, please secure your account immediately.
+            </p>
+          </div>
+
+          <p style="color: #999; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
+            This is an automated message from 3raffik Admin Panel. Do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+            return await sendMail(email, '3raffik Admin — Your Login OTP', html);
+        } catch (err) {
+            console.error('Error sending admin OTP email:', err);
+            throw new Error('Could not send admin OTP email');
+        }
+    },
 };
